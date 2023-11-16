@@ -1,0 +1,47 @@
+---
+- hosts: all
+  user: root
+  become: yes
+  tasks:
+    - name: java installation
+      yum:
+        name: java
+        state: present
+    - name: maven installation
+      yum:
+        name: maven
+        state: present
+    - name: git installation
+      yum:
+        name: git
+        state: present
+    - name: tomcat installation
+      get_url:
+        url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.82/bin/apache-tomcat-9.0.82.tar.gz
+        dest: /root/apache-tomcat.tar.gz
+    - name: extract tomcat file
+      ansible.builtin.unarchive:
+        src: /root/apache-tomcat.tar.gz
+        dest: /root
+        remote_src: yes
+    - name: create a directory
+      ansible.builtin.file:
+        name: project
+        path: /root
+        state: directory
+    - name: git clone
+      ansible.builtin.git:
+        repo: https://github.com/pavan-byte/pet_shop.git
+        dest: /root/project
+        version: main
+    - name: maven build
+      ansible.builtin.command:
+        cmd: mvn clean package
+        chdir: /root/project
+    - name: start tomcat
+      shell: nohup /root/apache-tomcat-9.0.82/bin/startup.sh
+    - name: war deploy
+      copy:
+        src: /root/project/target/petshop.war
+        dest: /root/apache-tomcat-9.0.82/webapps
+        remote_src: yes
